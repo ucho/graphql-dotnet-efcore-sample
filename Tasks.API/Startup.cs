@@ -24,8 +24,6 @@ namespace Tasks.API
             services
                 .AddDbContext<TasksDbContext>(options => options.UseInMemoryDatabase("tasks"))
                 .AddScoped<TasksSchema>()
-                .AddScoped<TasksQuery>()
-                .AddScoped<TasksMutation>()
                 .AddGraphQL(options => options.EnableMetrics = true)
                 .AddErrorInfoProvider(options => options.ExposeExceptionStackTrace = true)
                 .AddSystemTextJson()

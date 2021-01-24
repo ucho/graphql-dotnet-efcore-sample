@@ -2,7 +2,6 @@
 using GraphQL.Types;
 using GraphQL.Utilities;
 using System;
-using System.Linq;
 using Tasks.Domain;
 using Tasks.Infrastructure;
 
@@ -12,33 +11,38 @@ namespace Tasks.API
     {
         public TasksSchema(IServiceProvider provider) : base(provider)
         {
-            Query = provider.GetRequiredService<TasksQuery>();
-            Mutation = provider.GetRequiredService<TasksMutation>();
+            Query = new TasksQuery();
+            Mutation = new TasksMutation();
         }
     }
 
     public class TasksQuery : ObjectGraphType
     {
-        public TasksQuery(TasksDbContext db)
+        public TasksQuery()
         {
             Field<ListGraphType<TaskItemType>>("tasks",
-                resolve: _ => db.Tasks.AsEnumerable());
+                resolve: context =>
+                {
+                    var db = context.RequestServices.GetRequiredService<TasksDbContext>();
+                    return db.Tasks;
+                });
         }
     }
 
     public class TasksMutation : ObjectGraphType
     {
-        public TasksMutation(TasksDbContext db)
+        public TasksMutation()
         {
-            Field<TaskItemType>("addTask",
+            FieldAsync<TaskItemType>("addTask",
                 arguments: new QueryArguments(
                     new QueryArgument<TaskItemInputType> { Name = "task" }
                 ),
-                resolve: context =>
+                resolve: async context =>
                 {
                     var task = context.GetArgument<TaskItem>("task");
-                    var result = db.Tasks.Add(task);
-                    db.SaveChanges();
+                    var db = context.RequestServices.GetRequiredService<TasksDbContext>();
+                    var result = await db.Tasks.AddAsync(task);
+                    await db.SaveChangesAsync();
                     return result.Entity;
                 });
         }
